@@ -41,35 +41,57 @@ allAnimals = sort(unique(c(animalFlag1,animalFlag2,animalsFlag1,animalsFlag2,
 #subsets original dataframe
 animalSubset311 = data311[allAnimals,]
 
-# fulldata311 <- data.frame(readRDS('whole_data.RData'))
-# animalSubset311 = fulldata311[allAnimals,]
+
+## use whole_data to do calender plots
 library(dplyr)
 library(ggplot2)
 library(openair)
-dataforcal <- animalSubset311[,c(1,11)]
-dataforcal <- mutate(dataforcal, Date = as.character(Date))
-dataforcal = group_by(dataforcal, Date) 
+fulldata311 <- data.frame(readRDS('whole_data.RData'))
+animal311 = fulldata311[allAnimals,]
+animal311 <- tbl_df(animal311)
+animal311$Created.Date <- as.POSIXlt(animal311$Created.Date, "%m/%d/%Y %I:%M:%S %p", tz = "EST")
+animal311 <- mutate(animal311, year = animal311$Created.Date$year + 1900) 
+animal311 <- mutate(animal311, month = animal311$Created.Date$mon + 1) 
+animal311 <- mutate(animal311, day = animal311$Created.Date$mday)
+animal311 <- mutate(animal311, wkDay = animal311$Created.Date$wday + 1)
+animal311 <- mutate(animal311, hour = animal311$Created.Date$hour)
+dataforcal <- select(animal311, Created.Date, Unique.Key)
+dataforcal <- mutate(dataforcal, Created.Date = as.character(Created.Date))
+dataforcal <- mutate(dataforcal, Created.Date = substr(Created.Date, 0, 10))
+dataforcal = group_by(dataforcal, Created.Date) 
 dataforcal = summarise(dataforcal, count = n())
-dataforcal$Date = str_trim(dataforcal$Date)
-library(stringr)
-dataforcal$Date = as.POSIXlt(as.POSIXct(dataforcal$Date, format = "%m/%d/%Y"))
-qplot(Date, count, data = dataforcal, geom = "smooth", xlab = "Date", ylab = "Daily Animal Complaints", main = "Daily Animal Complaints 2010 - March 2016")
-calendarPlot(dataforcal, pollutant = "count", year = 2015, main = "Animal Complaints by Day 2015", cols = "increment")
+names(dataforcal)[1] <- "date"
+dataforcal$date <- as.POSIXct(dataforcal$date)
 
-ggplot(animalSubset311, aes(x=reorder(Descriptor, -table(Descriptor)[Descriptor]))) + 
-  geom_bar() + xlab("Descriptors") + ggtitle("Descriptors of Animal Complaints") +
+qplot(date, count, data = dataforcal, geom = "smooth", xlab = "Year", ylab = "Counts", main = "Yearly Complaints 2010 - March 2016")
+
+calPlot <- calendarPlot(dataforcal, "count", year = 2015, main = "Animal Complaints by Day in 2015", cols = "increment")
+
+ggplot(animalSubset311, aes(x=reorder(Agency, -table(Agency)[Agency]))) + 
+  geom_bar() + xlab("Agency") + ggtitle("Agencies of Animal Complaints") +
   theme(axis.text.x=element_text(angle=45, vjust=1, hjust=1))
 
-ggplot(animalSubset311, aes(x=reorder(Complaint.Type, -table(Complaint.Type)[Complaint.Type]))) + 
-  geom_bar() + xlab("Types") + ggtitle("Types of Animal Complaints") +
+
+July27Flag1 = grep('2015-07-27', animal311$Created.Date)
+July27Subset = animal311[July27Flag1,]
+ggplot(July27Subset, aes(x=reorder(Descriptor, -table(Descriptor)[Descriptor]))) + 
+  geom_bar() + xlab("Descriptor") + ggtitle("Descriptors of Animal Complaints in July 27th, 2015") +
   theme(axis.text.x=element_text(angle=45, vjust=1, hjust=1))
 
-rea_sol = as.data.frame(table(animalSubset311$Complaint.Type, animalSubset311$Agency))
-colnames(rea_sol) = c("reason","solution","count")
-ggplot(rea_sol, aes_string(x='solution', y='reason', size='count')) + geom_point() + scale_size_area(max_size = 20)
+Nov13Flag1 = grep('2015-11-13', animal311$Created.Date)
+Nov13Subset = animal311[Nov13Flag1,]
+ggplot(Nov13Subset, aes(x=reorder(Descriptor, -table(Descriptor)[Descriptor]))) + 
+  geom_bar() + xlab("Descriptor") + ggtitle("Descriptors of Animal Complaints in Nov 13th, 2015") +
+  theme(axis.text.x=element_text(angle=45, vjust=1, hjust=1))
+ggplot(Nov13Subset, aes(x=reorder(Incident.Zip, -table(Incident.Zip)[Incident.Zip]))) + 
+  geom_bar() + xlab("Incident.Address") + ggtitle("Descriptors of Animal Complaints in Nov 13th, 2015") +
+  theme(axis.text.x=element_text(angle=45, vjust=1, hjust=1))
 
-m = list(l = 250,r = 0,b=120)
-plot_ly(rea_sol, x = solution, y = reason, mode = "markers", size = count, marker = list(sizeref=6))%>%
-  layout(title = "Reason of Toilet Complaints vs Solution",
-         xaxis = list(title = "solution"), yaxis = list(title = "reason"),
-         autosize = F, width = 800, height = 600, margin = m)
+Nov12Flag1 = grep('2015-11-12', animal311$Created.Date)
+Nov12Subset = animal311[Nov12Flag1,]
+ggplot(Nov12Subset, aes(x=reorder(Descriptor, -table(Descriptor)[Descriptor]))) + 
+  geom_bar() + xlab("Descriptor") + ggtitle("Descriptors of Animal Complaints in Nov 12th, 2015") +
+  theme(axis.text.x=element_text(angle=45, vjust=1, hjust=1))
+ggplot(Nov12Subset, aes(x=reorder(Incident.Zip, -table(Incident.Zip)[Incident.Zip]))) + 
+  geom_bar() + xlab("Incident.Address") + ggtitle("Descriptors of Animal Complaints in Nov 12th, 2015") +
+  theme(axis.text.x=element_text(angle=45, vjust=1, hjust=1))
