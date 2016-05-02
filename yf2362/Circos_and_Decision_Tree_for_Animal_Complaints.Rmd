@@ -1,0 +1,238 @@
+---
+title: ""
+author: ""
+date: ""
+output: html_document
+---
+
+##I. Introduction
+
+##II. Exploratory Analysis
+
+We explored the 311 calls about animals from several perspectives. We studied the geographic distributions of some illegal pets, different complaint patterns by agency and by time. Here is a simple summary dashboard for all the animal-related 311 calls since 2010.
+
+\ 
+
+\ 
+
+###2.1 Unusual Pet Complaints
+
+Text Text Text Text Text Text Text Text Text Text
+
+###2.2 Agency
+
+Text Text Text Text Text Text Text Text Text Text
+
+###2.3 Time
+
+Text Text Text Text Text Text Text Text Text Text 
+
+Text Text Text Text Text Text Text Text Text Text
+
+##III. A Case Study -- Pigeons
+
+Text Text Text Text Text
+
+##IV. Correlation and Predictive Analysis
+
+Text Text Text Text Text Text Text Text Text Text
+
+### 4.1 Relationship between Rent Price and Dog/Pests Complaints
+
+Text Text Text Text Text Text Text Text Text Text
+
+### 4.2 Predictive Analysis on Case Length -- Decision Trees
+
+After exploring different features of the 311 calls, we would like to build up a predictive model to predict how long a case may take based on animal type, season, borough, agency, etc.
+
+We created a new variable indicating what kind of animal was mentioned in each case. Before digging into the model, we first looked at the features of complaints related to different animals and their relationship between other key variables. The following two circos plot show the relationship between animal types and the season, as well as the relationship between animal types and the county (borough). Please note that we did not include dogs and pests in these plots. One reason is that they make up a very big part of all animal-related cases. Including them would make the other animals' portion invisible. The other reason is that dog and pest complaints are almost equally spread across all seasons and boroughs. Besides, they are analyzed in detail in the previous part.
+
+
+```{r, include=FALSE}
+if (!require("RColorBrewer")) install.packages("RColorBrewer")
+if (!require("rpart.plot")) install.packages("rpart.plot")
+if (!require("plotly")) install.packages("plotly")
+if (!require("circlize")) install.packages("circlize")
+if (!require("RColorBrewer")) install.packages("RColorBrewer")
+if (!require("data.table")) install.packages("data.table")
+library("circlize")
+library('data.table')
+library('reshape')
+library('RColorBrewer')
+library('rpart.plot')
+
+#---------------#
+# Circos plot
+#---------------#
+# keep only useful
+data_animal = read.csv('smaller_animal_data.csv')
+data_animal = data_animal[,c(3,4,7,8,9,12,14,16,17,18)]
+
+# aggregate data
+  #(1) Animal & Seasons
+  tmp = data.table(data_animal)
+  Agg_season = as.data.frame(tmp[, sum(counts, na.rm = TRUE),by = list(Animal, Season)])
+  #(2) Animal & Boroughs
+  Agg_Borough = as.data.frame(tmp[, sum(counts, na.rm = TRUE),by = list(Animal, Borough)])
+```
+
+```{r, echo=FALSE, fig.align='center', fig.width=8, fig.height=4}
+# Plot two plots in one row
+  par(mfrow = c(1,2))
+  
+  #(1) Animal & Seasons
+  data = reshape(Agg_season, timevar = "Season", idvar = c("Animal"), direction = "wide")
+  data[is.na(data)] = 0
+  colnames(data) = sub("V1.","",colnames(data))
+  rownames(data) = data[,1]
+  
+  data = data[,-1]
+  data = data[,c(1,4,3,2)]
+  data = data[order(-data$Spring),]
+  data = as.matrix(data)
+  
+  # sum up some categories with too few records
+  data = rbind(data, colSums(data[9:15,]))
+  rownames(data)[16] = 'Others'
+
+  # plot
+  c1 = rev(gray.colors(ncol(data)))
+  c2 = c("#31a354", "#41bbf2", "#8dd03d", "#efbd26", "#f95959", "#6b62f2")
+  grid.col = NULL
+  grid.col[c(colnames(data[c(4:8,16),]),rownames(data[c(4:8,16),]))] = c(c1, c2)
+  chordDiagram(data[c(4:8,16),], grid.col = grid.col)
+  title("Animals (excl. Dog, Pests) and the Seasons", cex.main=1.1, font.main = 7)
+  
+  #(2) Animal & Boroughs
+  data = reshape(Agg_Borough, timevar = "Borough", idvar = c("Animal"), direction = "wide")
+  data[is.na(data)] = 0
+  colnames(data) = sub("V1.","",colnames(data))
+  rownames(data) = data[,1]
+  
+  data = data[,c(-1,-7)]
+  data = data[,c(1,3,2,4,5)]
+  data = data[order(-data$MANHATTAN),]
+  data = as.matrix(data)
+  
+  # sum up some categories with too few records
+  data = rbind(data, colSums(data[9:15,]))
+  rownames(data)[16] = 'Others'
+  
+  # plot
+  c1 = rev(gray.colors(ncol(data)))
+  c2 = c("#31a354", "#41bbf2", "#8dd03d", "#efbd26", "#f95959", "#6b62f2")
+  grid.col = NULL
+  grid.col[c(colnames(data[c(4:8,16),]),rownames(data[c(4:8,16),]))] = c(c1, c2)
+  chordDiagram(data[c(4:8,16),], grid.col = grid.col)
+  title("Animals (excl. Dog, Pests) and the Boroughs", cex.main=1.1, font.main = 7)
+
+```
+From the above two graphs we can observe some interesting facts. For example, in the left graph, we can see that bees-related complaints seldom happen in winter. Most of them are during summer. This is align with the fact that bees are more active in spring and summer, hence people complain more about illegal bees/beekeepers during these seasons. Another interesting fact from the right graph is that animal-related complaints in Manhattan are almost all about wildlife and pigeons. On the other hand, the complaint types in the other boroughs are more diverse.
+
+Next we would like to fit several decision trees based on some of the key variables from the 311 complaints. We picked the case length as our dependent variable. However, as we would like to make the model a classification model, we created a 'CaseLength' variable with 6 categories: Same Day, In 3 Days, In a Week, In 2 Weeks, In a Month, Over a Month. 
+
+The following graphs show several decision trees with different combinations between the key independent variables. The color of the labels are ranged from dark green to dark red, indicating the time from short to long. The bandwidth of the edges represent the proportion of cases falling into that category.
+
+
+```{r, include=FALSE}
+#---------------#
+# Decision Trees
+#---------------#
+# Read data
+Animal_data = read.csv('Selected_Info_with_Animal_Type.csv')
+
+# Decision Trees
+  color6 = c('#fee08b','#91cf60','#fc8d59','#d9ef8b','#d73027','#1a9850')
+  
+```
+
+```{r, echo = FALSE, fig.align='center', fig.width=6, fig.height=3}
+  # Animal only
+  rfit1 = rpart(CaseLength ~ Animal, data = Animal_data, method = "class", cp = 0.00001)
+  prp(rfit1, branch.type=5, faclen=0, uniform = TRUE, box.col=color6[rfit1$frame$yval],
+      main="", split.col ="#023858")
+  title("How long a case may take - based on Animal", cex.main=1.2, font.main = 7)
+
+```
+
+The first Decision Tree takes Animal as the only predictor. We can see that if the case is about wildlife, then it will be solved within a day; if the case is about cats and dogs, it will take shorter time (3 days) too; however, when the animal involved is a bit unusual, the case will take about a month to close.
+
+
+```{r, echo = FALSE, fig.align='center', fig.width=6, fig.height=6}
+  # Animal + Borough
+  rfit2 = rpart(CaseLength ~ Animal+Borough, data = Animal_data, method = "class", cp = 0.00001)
+  prp(rfit2, branch.type=2, faclen=0, uniform = TRUE, box.col=color6[rfit2$frame$yval],
+      main="", split.col ="#023858")
+  title("How long a case may take - based on Animal and Borough", cex.main=1.2, font.main = 7)
+```
+
+The second Decision Tree takes animal and borough into consideration. We can also observe similar pattern as the above: cases related wildlife, cats and dogs will take less time, while the others will take longer. Also, we can see that cases in Bronx and Staten Island are predicted to take longer time.
+
+
+```{r, echo = FALSE, fig.align='center', fig.width=6, fig.height=6}
+  # Animal + Season
+  rfit3 = rpart(CaseLength ~ Animal+Season, data = Animal_data, method = "class", cp = 0.00001)
+  prp(rfit3, branch.type=2, faclen=0, uniform = TRUE, box.col=color6[rfit3$frame$yval],
+      main="", split.col ="#023858")
+  title("How long a case may take - based on Animal and Season", cex.main=1.2, font.main = 7)
+  
+```
+
+The third Decision Tree studies animal and seasons. We can clearly see in this tree that winter cases tend to have longer processing time. It is reasonable to assume so because the holiday season and bad weather conditions.
+
+```{r, echo = FALSE, fig.align='center', fig.width=6, fig.height=4}
+  # Animal + Day of Week
+  rfit6 = rpart(CaseLength ~ Animal+Agency, data = Animal_data, method = "class", cp = 0.00001)
+  prp(rfit6, branch.type=2, faclen=0, uniform = TRUE, box.col=color6[rfit6$frame$yval],
+      main="", split.col ="#023858")
+  title("How long a case may take - based on Animal and Agency", cex.main=1.2, font.main = 7)
+```
+
+The fourth Decision Tree shows the predictions based on animal and agency. It is very clear that DOB, DOHMH and HPD generally take longer time to close cases. This can be related to the nature of the kind of cases they are dealing with. 
+
+Besides, we also made some other decision tree models. They are shown in the Appendix. 
+
+We also tried including more than 2 variables. They were definitely going to be good to increase the prediction accuracy. However, the tree was very large and was hard to be clearly visualized here. 
+
+So from the above Decision Tree graphs, we know that with the information about the animal type, borough, agency and seasons, we can have a general idea about how long a case may take.
+
+
+##V. Conclusion
+Text Text Text Text Text Text Text Text Text Text
+
+##Appendix
+
+### A.1 Additional Decision Trees
+```{r, echo = FALSE, fig.align='center'}
+  # Animal + Day of Week
+  rfit4 = rpart(CaseLength ~ Animal+DayOfWeek, data = Animal_data, method = "class", cp = 0.00001)
+  prp(rfit4, branch.type=5, faclen=0, uniform = TRUE, box.col=color6[rfit4$frame$yval],
+      main="", split.col ="#023858")
+  title("How long a case may take - based on Animal and Day of Week", cex.main=1.2, font.main = 7)
+```
+
+```{r, echo = FALSE, fig.align='center', fig.width=6, fig.height=6}
+  # Animal + Complaint Type
+  # code source: http://www.milbo.org/rpart-plot/prp.pdf
+  rfit5 = rpart(CaseLength ~ Animal+Complaint.Type, data = Animal_data, method = "class", cp = 0.00001)
+  split.fun <- function(x, labs, digits, varlen, faclen)
+  {
+    # replace commas with spaces (needed for strwrap)
+    labs <- gsub(",", ", ", labs)
+    for(i in 1:length(labs)) {
+      # split labs[i] into multiple lines
+      labs[i] <- paste(strwrap(labs[i], width=50), collapse="\n")
+    }
+    labs
+  }
+  prp(rfit5, branch.type=2, faclen=0, uniform = TRUE, split.fun=split.fun, cex = 0.7, 
+      box.col=color6[rfit5$frame$yval], split.col ="#023858", main="")
+  title("How long a case may take - based on Animal & Complaint Type", cex.main=1.2, font.main = 7)
+  
+```
+
+
+
+
+
+ 
