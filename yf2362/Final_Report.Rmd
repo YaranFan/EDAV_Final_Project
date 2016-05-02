@@ -7,6 +7,8 @@ output: html_document
 
 ##I. Introduction
 
+Text Text Text Text Text Text Text Text Text Text
+
 ##II. Exploratory Analysis
 
 We explored the 311 calls about animals from several perspectives. We studied the geographic distributions of some illegal pets, different complaint patterns by agency and by time. Here is a simple summary dashboard for all the animal-related 311 calls since 2010.

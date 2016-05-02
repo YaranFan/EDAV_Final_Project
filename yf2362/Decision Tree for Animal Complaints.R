@@ -125,4 +125,3 @@ Animal_data = read.csv('yf2362/Selected_Info_with_Animal_Type.csv')
   prp(rfit6, branch.type=2, faclen=0, uniform = TRUE, box.col=color6[rfit6$frame$yval],
       main="", split.col ="#023858")
   title("How long a case may take - based on Animal and Agency", cex.main=1.4, font.main = 7)
-  
