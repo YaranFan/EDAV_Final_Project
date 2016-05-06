@@ -317,7 +317,7 @@ ggplot(data, aes(x=reorder(Agency, -table(Agency)[Agency]))) + geom_bar() + coor
 
 From the bar chart, we see that the Housing of Preservation and Development (HPD) receives the most calls, followed by the Department of Sanitation (DSNY) and the Department of Environmental Protection (DEP).
 
-Next, we explore the spatial distribution of the agency calls.
+Next, we explore the spatial distribution of the animal-related agency responses.
 
 ```{r echo = FALSE}
 ### map with ggplot
