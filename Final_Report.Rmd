@@ -302,15 +302,80 @@ Finally, we decided to create an interactive explorer for unusual pet complaints
 
 ###2.2 Agency
 
-Text Text Text Text Text Text Text Text Text Text
+Which agencies respond to the animal-related 311 calls most frequently? 
 
-```{r, echo=FALSE, warning=FALSE, message=FALSE}
+``` {r echo = FALSE}
+data <- read.csv('animalSubset.csv')
+
+library(plyr)
+library(dplyr)
 library(ggplot2)
-animal = read.csv("animialSubset.csv", na.strings = "NA")
-ggplot(animal, aes(x=reorder(Agency, -table(Agency)[Agency]))) + 
-  geom_bar() + xlab("Agency") + ggtitle("Agencies of Animal Complaints") +
-  theme(axis.text.x=element_text(angle=45, vjust=1, hjust=1))
+library(rgdal)
+
+ggplot(data, aes(x=reorder(Agency, -table(Agency)[Agency]))) + geom_bar() + coord_flip() + xlab("") + ylab('Count') + ggtitle("Frequency of Agencies") 
 ```
+
+From the bar chart, we see that the Housing of Preservation and Development (HPD) receives the most calls, followed by the Department of Sanitation (DSNY) and the Department of Environmental Protection (DEP).
+
+Next, we explore the spatial distribution of the agency calls.
+
+```{r echo = FALSE}
+### map with ggplot
+boros <- readOGR(dsn = 'nybb_16a/nybb.shp', layer = 'nybb', verbose = FALSE)
+data <- read.csv('animalSubset.csv')
+# subset the data, remove missing values
+map_boro_agency <- function(dataframe, agencyname, shapefile) {
+  mapdata <- filter(dataframe, Agency == agencyname)
+  mapdata <- na.omit(mapdata)
+  
+  # project the data
+  proj4string(boros)
+  
+  # convert the points data frame to class SpatialPointsDataFrame.
+  class(mapdata)
+  coordinates(mapdata)<-~Longitude+Latitude
+  class(mapdata)
+  
+  # assign a coordinate system if one is missing
+  proj4string(mapdata)
+  proj4string(mapdata) <- CRS("+proj=longlat +datum=NAD83")
+  mapdata <- spTransform(mapdata, CRS(proj4string(shapefile)))
+  identical(proj4string(mapdata), proj4string(shapefile))
+  
+  # convert SpatialPointsDataFrame to a data.frame
+  mapdata <- data.frame(mapdata)
+  
+  # change names for clarity
+  names(mapdata)[names(mapdata)=="Longitude"]<-"x"
+  names(mapdata)[names(mapdata)=="Latitude"]<-"y"
+  
+  par(mfrow=c(2, 3))
+  
+  # map!
+  ggplot() + geom_polygon(data=shapefile, aes(x=long, y=lat, group=group)) +  
+    geom_point(data=mapdata, aes(x=x, y=y), color='#FF6666') +
+    labs(x="", y="", title=agencyname) +
+    theme(
+      axis.text.x = element_blank(),
+      axis.text.y = element_blank(),
+      axis.ticks = element_blank(),
+      panel.background = element_blank())
+}
+
+map_boro_agency(data, 'HPD', boros)
+map_boro_agency(data, 'DOT', boros)
+map_boro_agency(data, 'DEP', boros)
+```
+
+We used ggplot for these borough-agency maps, removing the default background and grid lines for a simple but bold aesthetic. They were not providing any additional information to the visualization, and we followed one of Edward Tufte's main data visualization principles of eliminating "chart junk."  
+
+Some key takeaways:
+
+* HPD is the most frequently responding agency overall, and these responses are clustered toward the Northeast part of Staten Island, rather than being spread out over the whole borough.
+
+* Plotting the complaints to which the DOT responded form the pattern of NYC's main roads.
+
+* For the DEP plot, we expected agency responses to be in parks. But in fact, there is still an empty space over the parks, such as Central Park and Prospect Park. Perhaps this says something about a difference between where people issue their 311 complaints and the occurrence of the complaint cause, or the capabilities of the park rangers to handle animal issues. 
 
 ###2.3 Time
 
