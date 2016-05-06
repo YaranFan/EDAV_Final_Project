@@ -404,13 +404,28 @@ Some key takeaways:
 # 
 # calPlot <- calendarPlot(dataforcal, "count", year = 2015, main = "Animal Complaints by Day in 2015", cols = "increment")
 ```
-
-<img src="yearly complaints.png" />
-
 From the yearly complaints plot, we can see that the number of complaints has a sharp increse after 2014. The reason is that Pest is added to complaints only after 2014 and soon it become the top reason of animal complaints.        
-Next, we draw a calendar plot of 2015 to see the trend of animal complaints throughout a year. It shows that during summer months, the number of animal complaints is greater than other seasons.     
+Next, we draw a calendar plot of 2015 to see the trend of animal complaints throughout a year. It shows that during summer months, the number of animal complaints is greater than other seasons.    
+
+<img src="yearly complaints.png" height="400px" width="700px"/>
 
 <img src="calender plot.png" />
+
+We can see that the color of Nov. 13th on the calendar plot is the darkest which means it has the most number of complaints in 2015. We then examine closely about what type of complaints were made in that day. We can see that Pests is the overwhelming descriptor of complaints.       
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+Nov13Flag1 = grep('11/13/2015', animal$Date)
+Nov13Subset = animal[Nov13Flag1,]
+ggplot(Nov13Subset, aes(x=reorder(Descriptor, -table(Descriptor)[Descriptor]))) + 
+  geom_bar() + xlab("Descriptor") + ggtitle("Descriptors of Animal Complaints in Nov 13th, 2015") + theme(axis.text.x=element_text(angle=45, vjust=1, hjust=1))
+```
+
+We want to know whether the large number of Pests complaints has some kind of geographical features, so we plot the zipcode of them. It turns out zipcode 10452 make up large percentage of the pests complaints of that day. It may sugggest that lots of people complaint about the same situation at the same day or same group of people make multiple complaints.            
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.width = 10}
+PestsFlag = grep('PESTS', Nov13Subset$Descriptor)
+PestsSubset = Nov13Subset[PestsFlag,]
+ggplot(PestsSubset, aes(x=reorder(Incident.Zip, -table(Incident.Zip)[Incident.Zip]))) + 
+  geom_bar() + xlab("Zip Code") + ggtitle("Zip Codes of Pests Complaints in Nov 13th, 2015") + theme(axis.text.x=element_text(angle=90, vjust=1, hjust=1))
+```
 
 ##III. A Case Study -- Pigeons
 
