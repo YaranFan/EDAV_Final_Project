@@ -304,11 +304,48 @@ Finally, we decided to create an interactive explorer for unusual pet complaints
 
 Text Text Text Text Text Text Text Text Text Text
 
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+library(ggplot2)
+animal = read.csv("animialSubset.csv", na.strings = "NA")
+ggplot(animal, aes(x=reorder(Agency, -table(Agency)[Agency]))) + 
+  geom_bar() + xlab("Agency") + ggtitle("Agencies of Animal Complaints") +
+  theme(axis.text.x=element_text(angle=45, vjust=1, hjust=1))
+```
+
 ###2.3 Time
 
-Text Text Text Text Text Text Text Text Text Text
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+## use whole_data to create calender plots, since whole_data is too big to upload on github, I insert image below. 
+# library(dplyr)
+# library(openair)
+# fulldata311 <- data.frame(readRDS('whole_data.RData'))
+# animal311 = fulldata311[allAnimals,]
+# animal311 <- tbl_df(animal311)
+# animal311$Created.Date <- as.POSIXlt(animal311$Created.Date, "%m/%d/%Y %I:%M:%S %p", tz = "EST")
+# animal311 <- mutate(animal311, year = animal311$Created.Date$year + 1900) 
+# animal311 <- mutate(animal311, month = animal311$Created.Date$mon + 1) 
+# animal311 <- mutate(animal311, day = animal311$Created.Date$mday)
+# animal311 <- mutate(animal311, wkDay = animal311$Created.Date$wday + 1)
+# animal311 <- mutate(animal311, hour = animal311$Created.Date$hour)
+# dataforcal <- select(animal311, Created.Date, Unique.Key)
+# dataforcal <- mutate(dataforcal, Created.Date = as.character(Created.Date))
+# dataforcal <- mutate(dataforcal, Created.Date = substr(Created.Date, 0, 10))
+# dataforcal = group_by(dataforcal, Created.Date) 
+# dataforcal = summarise(dataforcal, count = n())
+# names(dataforcal)[1] <- "date"
+# dataforcal$date <- as.POSIXct(dataforcal$date)
+# 
+# qplot(date, count, data = dataforcal, geom = "smooth", xlab = "Year", ylab = "Counts", main = "Yearly Complaints 2010 - March 2016")
+# 
+# calPlot <- calendarPlot(dataforcal, "count", year = 2015, main = "Animal Complaints by Day in 2015", cols = "increment")
+```
 
-Text Text Text Text Text Text Text Text Text Text
+<img src="yearly complaints.png" />
+
+From the yearly complaints plot, we can see that the number of complaints has a sharp increse after 2014. The reason is that Pest is added to complaints only after 2014 and soon it become the top reason of animal complaints.        
+Next, we draw a calendar plot of 2015 to see the trend of animal complaints throughout a year. It shows that during summer months, the number of animal complaints is greater than other seasons.     
+
+<img src="calender plot.png" />
 
 ##III. A Case Study -- Pigeons
 
