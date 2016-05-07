@@ -10,6 +10,8 @@ library(ggplot2)
 library(leaflet)
 library(tigris)
 library(plyr)
+require(devtools)
+install_github('rCharts', 'ramnathv')
 require(rCharts)
 
 #explain level
@@ -149,7 +151,7 @@ library('ggmap')
 
 ##I. Introduction
 
-Text Text Text Text Text Text Text Text Text Text
+In this project, our group sought to explore and analyze the sub-set of 311 calls dealing with animal-based complaints. We were surprised at the sheer volume of animal-related inquiries - over the 6 year period available from the 311 website, we extracted nearly 250,000 complaints. To gather this very specific sub-set of data, we used a keyword search appraoch, using both generic and specific animal-related terms, to gather as many complaints as possible. Specifically, here are some of the keywords we used: `c('animal','animals','dog','dogs','pet','wildlife','infestation','bird','birds','pigeon','pigeons','pest','bee')`. Once we had this data collected, we dove in individually and discovered a series of interesting stories, which we present in the sections below. 
 
 ##II. Exploratory Analysis
 
@@ -429,7 +431,88 @@ ggplot(PestsSubset, aes(x=reorder(Incident.Zip, -table(Incident.Zip)[Incident.Zi
 
 ##III. A Case Study -- Pigeons
 
-Text Text Text Text Text
+Of all the animal species found in the city, perhaps none is more often associated with New York City than *Columba livia*, the common pigeon. These birds seemingly inhabit every square foot of the city, from parks, to statues, to windowsills. While this ability to make a home in any environment is remarkable from an ornithological and evolutionary standpoint, from a *residential* standpoint, it is nothing but bad news. 
+
+When pigeons congregate in a certain location, they are very difficult to remove, and the longer they remain in once place, the dirtier they tend to make it. 
+
+Then, it comes as no surprise that from 2010 through 2016, there have been nearly 4,000 complaints dealing with either "pigeon waste" or "pigeon odor" on or around private property. 
+
+Here is how these calls have been distributed over time:
+
+```{r, echo=FALSE, warning=FALSE,message=FALSE}
+## Here we will attempt to plot some pigeon data in NYC
+
+# loading the required packages
+library(ggplot2)
+library(ggmap)
+
+# creating a sample data.frame with your lat/lon points
+anSub <- data.frame(read.csv('animialSubset.csv'))
+
+pigeonComplaints <- 
+  subset(x = anSub,
+         subset = anSub$Complaint.Type == 
+           'Unsanitary Pigeon Condition')
+
+## Cleans out Latitude "N/A" values
+pigeonComplaints <- 
+  subset(x = pigeonComplaints,
+         subset = !is.na(pigeonComplaints$Latitude))
+
+
+lon <- pigeonComplaints[11]
+lat <- pigeonComplaints[10]
+df <- as.data.frame(cbind(lon,lat))
+
+monthCounts <- table(pigeonComplaints$Month)
+monthCounts <- as.data.frame(monthCounts)
+m <- c(4,8,12,2,1,7,6,3,5,11,10,9)
+m <- as.data.frame(m)
+monthCounts$monthNum <- m
+monthCounts <- monthCounts[order(m),]
+colnames(monthCounts) <- c("Month","Calls","m")
+
+
+#Here we plot pigeon-related call volume by month and year 
+monthYearCounts <- table(pigeonComplaints$Year,pigeonComplaints$Month)
+monthYearCounts <- monthYearCounts[,c(5,4,8,1,9,7,6,2,12,11,10,3)]
+
+#I tried to mimic the typical coloring of a 
+#NYC pigeon using this color scheme
+pigeonColors <- c("indianred3", 
+                  "gray0", 
+                  "gray", 
+                  "darkorchid4", 
+                  "seagreen4",
+                  "cadetblue", 
+                  "orangered1")
+
+# plots pigeon calls by month and year
+barplot(monthYearCounts, 
+        main="Pigeon Complaints by Month and Year",
+        xlab="Month",
+        col = pigeonColors,
+        legend.text = rownames(monthYearCounts),
+        args.legend =  list(x="topright")
+        )
+
+# plots pigeon calls grouped by year
+yearSum <- summary(as.factor(pigeonComplaints$Year))
+barplot(yearSum, 
+        ylim = c(0,800), 
+        col = pigeonColors,
+        xlab = "Year",
+        ylab = "Complaints",
+        las = 1,
+        main = "Pigeon Complaints by Year"
+        )
+```
+
+What is perhaps most interesting about these pigeon complaints is that they seem to confirm what we already suspect - that these birds do not discriminate where they live. Indeed, as the animated map (click on thumbnail to view CartoDB animation) shows, the spatial distribution of pigeon-related 311 calls is quite random, and seemingly uniform across all areas of New York City.
+
+<div style="width:200px; height:200px;"text-align:center;">
+  <a href='http://tinyurl.com/pigeonViz'><img src ="pigeon_thumb.png" alt="Pigeon Map"/></a>
+</div>
 
 ##IV. Correlation and Predictive Analysis
 
