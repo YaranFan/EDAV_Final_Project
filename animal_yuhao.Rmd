@@ -1,0 +1,161 @@
+#Analysis on animal related complaints by Hao
+
+##Animal complaints summary
+All complaints are linked to the agencies which handled them and also to the borough of occurance. The wider the line the higher the count. It is interactive. If you move the mouse onto one of the line, the count will show up. 
+
+```{r  echo=FALSE,results="asis", message=FALSE, warning=FALSE, comment= NA}
+library(ggmap)
+library(ggplot2)
+library(leaflet)
+library(tigris)
+library(plyr)
+require(rCharts)
+library(knitr)
+
+#explain level
+#http://stackoverflow.com/questions/32206623/what-does-level-mean-in-ggplotstat-density2d
+
+setwd("/Users/vernon/Dropbox/courses/Columbia/STAT_W4701_EDA_and_visualization/hw/final_project/yaran/EDAV_Final_Project")
+
+animal = read.csv("animialSubset.csv", na.strings = "NA")
+
+desc =as.data.frame(summary(animal$Descriptor))
+comp = as.data.frame(summary(animal$Complaint.Type))
+loc = as.data.frame(summary(animal$Location.Type))
+
+
+dog_noise = animal[animal$Descriptor == "Noise, Barking Dog (NR5)",]
+
+
+pests = animal[animal$Descriptor == "PESTS",]
+
+
+dog_noise_manha = dog_noise[dog_noise$Borough == "MANHATTAN",]
+
+#summary(dog_noise_manha$Incident.Zip)
+dog_noise_2015 = dog_noise[dog_noise$Year == "2015",]
+#summary(dog_noise_2015$Borough)
+
+bronx_popu = 1455444
+brooklyn_popu = 2636735
+manhattan_popu = 1644518
+queens_popu = 2339150
+staten_popu = 474558
+
+dog_noise_2015_manhattan = dog_noise_2015[dog_noise_2015$Borough == "MANHATTAN" ,]
+#sankey plot
+#sankey plot require input as a data frame has three columns (source, target, value), the value is total out going edge of each source
+agency = animal$Agency
+descriptor = animal$Descriptor
+sankey_df = data.frame(descriptor, agency)
+colnames(sankey_df) = c("source", "target")
+#this count function is from the plyr library, will count the occurance of each value in source column of sankey_df and return a data frame
+sankey_count <- count(sankey_df, 'source')
+#merge orignal data frame with the count data frame, then each column will contains the count of the source
+sankey_df = merge(x= sankey_df,y= sankey_count, by = "source", all.x = TRUE )
+colnames(sankey_df) = c("source", "target", "value")
+
+
+#summary(animal$Descriptor)
+
+borough = animal$Borough
+temp = data.frame(agency,borough)
+colnames(temp) = c("source", "target")
+temp_count <- count(temp, c("source",'target'))
+temp = merge(x= temp,y= temp_count, by = c("source","target"), all.x = TRUE )
+colnames(temp) = c("source", "target", "value")
+
+sankey_new <- rbind(sankey_df, temp) 
+sankey_new = sankey_new[!duplicated(sankey_new), ]
+#sankey_new[df=="12 Dead Animals"]<-"Dead Animals Sanitation Problem"
+
+#DPR dead animal :Animal in a Park 
+#DSNY dead animal :Sanitation Condition
+#DOT dead animal :Highway 
+
+##aa = animal[animal$Agency == "NYPD",]
+#summary(aa$Descriptor)
+
+sankeyPlot <- rCharts$new()
+sankeyPlot$setLib('http://timelyportfolio.github.io/rCharts_d3_sankey/libraries/widgets/d3_sankey')
+sankeyPlot$set(
+  data = sankey_new,
+  nodeWidth = 15,
+  nodePadding = 10,
+  layout = 32,
+  #layout = 50,
+  #width = 960,
+  width = 800,
+  height = 600,
+  units = "complaints",
+  title = "Sankey Diagram---Complaints related to animals"
+)
+#sankeyPlot
+
+sankeyPlot$show("iframesrc", cdn = TRUE)
+```
+##Dogs' noise and pests complaints analysis and their relation with house rent
+I found that places where house is expensive have more dog's complaints. This makes sense that raising dogs in nyc is expensive. Richer places have more dogs. Places with more dog noise complaints have higher house rent. 
+
+```{r  echo=FALSE,results="asis", message=FALSE, warning=FALSE, comment= NA, fig.align='center'}
+#summary(dog_noise_2015$Incident.Zip)
+#dog_noise all new york
+new_york_map <- get_map(location="new york", zoom = 11)
+ggmap(new_york_map, extent='device', title="aa")+ ggtitle("Dog Noise Complaints Density Estimation New York") +stat_density2d(data=dog_noise_2015, aes(x=Longitude, y=Latitude,  fill = ..level.., alpha = ..level..), size = 0.01,  geom = 'polygon')+
+scale_fill_gradient(low = "green", high = "red") +scale_alpha(range = c(0, 0.5), guide = FALSE)
+```
+
+```{r  echo=FALSE,results="asis", message=FALSE, warning=FALSE, comment= NA, fig.align='center'}
+
+#dog_noise manhattan only
+new_york_map <- get_map(location="new york chelsea", zoom = 12)
+ggmap(new_york_map, extent='device')+ ggtitle("Dog Noise Complaints Density Estimation Manhattan") +stat_density2d(data=dog_noise_2015_manhattan, aes(x=Longitude, y=Latitude,  fill = ..level.., alpha = ..level..), size = 0.01,  geom = 'polygon')+
+scale_fill_gradient(low = "green", high = "red") +scale_alpha(range = c(0, 0.5), guide = FALSE)
+```
+
+##Pests complaints analysis
+The complaints about pests occured mainly at places where rent is low. 
+```{r  echo=FALSE,results="asis", message=FALSE, warning=FALSE, comment= NA, fig.align='center'}
+#pests map all new york
+pests_2015 = pests[pests$Year == "2015",]
+new_york_map <- get_map(location="new york", zoom = 11)
+ggmap(new_york_map, extent='device')+ ggtitle("Pests Complaints Density Estimation") + stat_density2d(data=pests_2015, aes(x=Longitude, y=Latitude,  fill = ..level.., alpha = ..level..), size = 0.01,  geom = 'polygon')+
+scale_fill_gradient(low = "green", high = "red") +scale_alpha(range = c(0, 0.5), guide = FALSE) 
+```
+
+```{r  echo=FALSE,results="asis", message=FALSE, warning=FALSE, comment= NA, out.width=900}
+#gross rent 
+counties = c(5,47,61,81,85)
+tracts_ny = tracts(state = "NY", county = counties, cb = TRUE)
+
+
+#tracts[[4]] is geoid
+ny_city = read.csv("ct_nyc_clean.csv", na.strings = "NA")
+ny_city$Id2 = as.character(ny_city$Id2)
+
+median_rent_merged = geo_join(tracts_ny, ny_city, "GEOID", "Id2")
+
+rent = as.data.frame(median_rent_merged)
+pal = colorNumeric(palette = "YlGnBu", domain = rent$median_rent)
+popup = paste0("GEOID: " , rent$Id2, "<br>", "median house rent: ", rent$median_rent)
+
+map1 = leaflet() %>%
+  addProviderTiles("CartoDB.Positron") %>%
+  addPolygons(data = median_rent_merged,
+              fillColor = ~pal(median_rent),
+              color = "#b2aeae",
+              fillOpacity = 0.5,
+              weight = 1,
+              smoothFactor = 0.2,
+              popup = popup
+              ) %>%
+  addLegend(pal = pal,
+            values = rent$median_rent,
+            position = "bottomright",
+            title = "Median House rent ",
+            labFormat = labelFormat(prefix = "$")
+            )
+map1
+```
+
+
