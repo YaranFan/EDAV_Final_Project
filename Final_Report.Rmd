@@ -305,7 +305,7 @@ Finally, we decided to create an interactive explorer for unusual pet complaints
 
 Which agencies respond to the animal-related 311 calls most frequently? 
 
-``` {r echo = FALSE}
+``` {r echo = FALSE, fig.align='center'}
 data <- read.csv('animalSubset.csv')
 
 library(plyr)
@@ -368,7 +368,10 @@ par(mfrow=c(1,3))
 #map_boro_agency(data, 'DOT', boros)
 #map_boro_agency(data, 'DEP', boros)
 ```
-<img src="agency.png" / >
+
+<center>
+<img src="agency.png" height="200px"/ >
+</center>
 
 We used ggplot for these borough-agency maps, removing the default background and grid lines for a simple but bold aesthetic. They were not providing any additional information to the visualization, and we followed one of Edward Tufte's main data visualization principles of eliminating "chart junk."  
 
@@ -410,20 +413,22 @@ Some key takeaways:
 From the yearly complaints plot, we can see that the number of complaints has a sharp increse after 2014. The reason is that Pest is added to complaints only after 2014 and soon it become the top reason of animal complaints.        
 Next, we draw a calendar plot of 2015 to see the trend of animal complaints throughout a year. It shows that during summer months, the number of animal complaints is greater than other seasons.    
 
-<img src="yearly complaints.png" height="200px" width="700px"/>
+<center>
+<img src="Yearly complaints.png" height="200px"/ >
+<img src="calender plot.png" / >
+</center>
 
+We can see that the color of Nov. 13th on the calendar plot is the darkest which means it has the most number of complaints in 2015. We then examine closely about what type of complaints were made in that day. We can see that Pests is the overwhelming descriptor of complaints.
 
-<img src="calender plot.png" />
-
-We can see that the color of Nov. 13th on the calendar plot is the darkest which means it has the most number of complaints in 2015. We then examine closely about what type of complaints were made in that day. We can see that Pests is the overwhelming descriptor of complaints.       
-```{r, echo=FALSE, warning=FALSE, message=FALSE}
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.align='center'}
 Nov13Flag1 = grep('11/13/2015', animal$Date)
 Nov13Subset = animal[Nov13Flag1,]
 ggplot(Nov13Subset, aes(x=reorder(Descriptor, -table(Descriptor)[Descriptor]))) + 
   geom_bar() + xlab("Descriptor") + ggtitle("Descriptors of Animal Complaints in Nov 13th, 2015") + theme(axis.text.x=element_text(angle=45, vjust=1, hjust=1))
 ```
 
-We want to know whether the large number of Pests complaints has some kind of geographical features. It turns out zipcode 10452 make up large percentage of the pests complaints of that day. It may sugggest that lots of people complaint about the same situation at the same day or same group of people make multiple complaints.            
+We want to know whether the large number of Pests complaints has some kind of geographical features. It turns out zipcode 10452 make up large percentage of the pests complaints of that day. It may sugggest that lots of people complaint about the same situation at the same day or same group of people make multiple complaints.
+
 ```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.width = 10}
 #PestsFlag = grep('PESTS', Nov13Subset$Descriptor)
 #PestsSubset = Nov13Subset[PestsFlag,]
@@ -441,7 +446,7 @@ Then, it comes as no surprise that from 2010 through 2016, there have been nearl
 
 Here is how these calls have been distributed over time:
 
-```{r, echo=FALSE, warning=FALSE,message=FALSE}
+```{r, echo=FALSE, warning=FALSE,message=FALSE, fig.align='center', }
 ## Here we will attempt to plot some pigeon data in NYC
 
 # loading the required packages
@@ -542,7 +547,6 @@ new_york_map <- get_map(location="new york", zoom = 11)
 ggmap(new_york_map, extent='device')+ ggtitle("Pests Complaints Density Estimation") + stat_density2d(data=pests_2015, aes(x=Longitude, y=Latitude,  fill = ..level.., alpha = ..level..), size = 0.01,  geom = 'polygon')+
 scale_fill_gradient(low = "green", high = "red") +scale_alpha(range = c(0, 0.5), guide = FALSE) 
 ```
-
 
 
 
@@ -691,7 +695,10 @@ So from the above Decision Tree graphs, we know that with the information about 
 
 
 ##V. Conclusion
-Text Text Text Text Text Text Text Text Text Text
+
+In this project, we studied many animal-related 311 calls since 2010. There are many interesting findings. First of all, with some external source about the detailed comment on illegal pets' complaints, we were able to show the complaints about different illegal animals on a map. The map shows some specific patterns for certain animals. For example, complaints about roosters are widely distributed across the city, while complaints about pigs are centralized in the Brooklyn area. Then, we explored the data by agency and time and discovered some meaningful patterns. The 'heat calendar' for the animal-related complains shows a pattern that there are much less complaints during winter than the other seasons. Among all the animals, we picked pigeon, dog and pests for our case study part. Although pigeons are more common than the other animals studied in the previous sections, they also follow the fact that they are less active during winter time, hence there are less complaints about them during those months. Another interpretation could be that people have other things to focus on during that time period than making complaints. Dog and pests complaints tend to have positive and negative relationships with the rent prices respectively. From our visualization we can see that places with higher rent have more complaints about dogs, while cheaper places have more complaints about pests. Finally, we built a decision tree model on all the animal-related cases to model the time difference cases may take. 
+
+Through our analysis, we found interesting facts and patterns about animal-related 311 complaints and relations between such complaints and demographic factors. We also used the decision model to help people who make the complaint to have an idea about how long their case may take based on the animal type, agency, seasons, etc. 
 
 ##Appendix
 
